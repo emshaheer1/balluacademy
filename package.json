@@ -1,0 +1,26 @@
+{
+  "name": "client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/copy-public-images.mjs",
+    "copy-images": "node scripts/copy-public-images.mjs",
+    "scan-hero-img": "node scripts/scan-hero-img.mjs",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.4",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1"
+  },
+  "dependencies": {
+    "firebase": "^11.10.0",
+    "lucide-react": "^0.460.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.1",
+    "recharts": "^3.8.0"
+  }
+}
