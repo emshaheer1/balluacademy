@@ -4,16 +4,29 @@ import { resolve } from 'path'
 
 let auth = null
 
+function loadServiceAccountKey() {
+  const inline = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+  if (inline?.trim()) {
+    return JSON.parse(inline.trim())
+  }
+  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
+  if (keyPath) {
+    return JSON.parse(readFileSync(resolve(keyPath), 'utf8'))
+  }
+  return null
+}
+
 export function getFirebaseAuth() {
   if (auth) return auth
-  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS
-  if (!keyPath) {
-    console.warn('GOOGLE_APPLICATION_CREDENTIALS not set; Google sign-in will be disabled.')
-    return null
-  }
   try {
     if (!admin.apps.length) {
-      const key = JSON.parse(readFileSync(resolve(keyPath), 'utf8'))
+      const key = loadServiceAccountKey()
+      if (!key) {
+        console.warn(
+          'Firebase Admin not configured (set FIREBASE_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS); Google sign-in verification will be disabled.'
+        )
+        return null
+      }
       admin.initializeApp({ credential: admin.credential.cert(key) })
     }
     auth = admin.auth()
