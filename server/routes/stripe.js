@@ -52,7 +52,13 @@ router.post('/create-checkout-session', async (req, res) => {
     const lineItems = items.map((item) => {
       const unitPrice = priceFromProductId(item.productId)
       const qty = Math.max(1, Math.floor(Number(item.quantity) || 1))
-      const meta = { productId: item.productId, size: item.size || '', color: item.color || '' }
+      const meta = {
+        productId: item.productId,
+        size: item.size || '',
+        color: item.color || '',
+        category: String(item.category || '').slice(0, 500),
+        image: String(item.image || '').slice(0, 500),
+      }
 
       return {
         price_data: {
@@ -128,10 +134,12 @@ router.post('/webhook', async (req, res) => {
         return {
           productId: meta.productId || '',
           name: product?.name || li.description || '',
+          category: meta.category || '',
           quantity: li.quantity,
           price: (li.price?.unit_amount || 0) / 100,
           size: meta.size || '',
           color: meta.color || '',
+          image: meta.image || '',
         }
       })
 
@@ -175,10 +183,12 @@ router.get('/session/:sessionId', async (req, res) => {
       return {
         productId: meta.productId || '',
         name: product?.name || '',
+        category: meta.category || '',
         quantity: li.quantity,
         price: (li.price?.unit_amount || 0) / 100,
         size: meta.size || '',
         color: meta.color || '',
+        image: meta.image || '',
       }
     })
 

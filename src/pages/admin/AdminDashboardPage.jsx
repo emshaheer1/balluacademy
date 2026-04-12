@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart3, Users, ShoppingBag, ClipboardList, MessageSquare, Sun, Moon } from 'lucide-react'
 import { useAdmin } from '../../context/AdminContext'
@@ -7,6 +7,32 @@ import { apiWithAuth } from '../../api/client'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 const ICON_SIZE = 20
+
+function lineItemKey(orderId, item, index) {
+  return `${orderId}-${item.productId || 'x'}-${item.size || ''}-${item.color || ''}-${index}`
+}
+
+function OrderLineImage({ src, alt }) {
+  const [broken, setBroken] = useState(!src)
+  useEffect(() => {
+    setBroken(!src)
+  }, [src])
+  if (broken || !src) {
+    return (
+      <div className="admin-order-product-thumb admin-order-product-thumb--placeholder" aria-hidden>
+        —
+      </div>
+    )
+  }
+  return (
+    <img
+      className="admin-order-product-thumb"
+      src={src}
+      alt={alt || ''}
+      onError={() => setBroken(true)}
+    />
+  )
+}
 const SECTIONS = [
   { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
   { id: 'customers', label: 'Customer accounts', Icon: Users },
@@ -26,6 +52,7 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState({ totalVisits: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [detailOrderId, setDetailOrderId] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -77,6 +104,15 @@ export default function AdminDashboardPage() {
     ]
     return { chartData, ordersByCustomer: ordersByCustomerMap }
   }, [stats.totalVisits, orders])
+
+  const detailOrder = useMemo(
+    () => (detailOrderId ? orders.find((o) => o.orderId === detailOrderId) : null),
+    [orders, detailOrderId]
+  )
+
+  const toggleOrderDetail = useCallback((orderId) => {
+    setDetailOrderId((current) => (current === orderId ? null : orderId))
+  }, [])
 
   return (
     <div className="admin-dashboard">
@@ -205,7 +241,7 @@ export default function AdminDashboardPage() {
               {activeSection === 'orders' && (
                 <section className="admin-orders-section">
                   <h1 className="admin-section-title">Orders</h1>
-                  <p className="admin-section-sub">All orders placed by customers.</p>
+                  <p className="admin-section-sub">All orders placed by customers. Open order details to see product images, titles, category, size, and color for each line.</p>
                   <div className="admin-table-wrap">
                     <table className="admin-table">
                       <thead>
@@ -216,12 +252,13 @@ export default function AdminDashboardPage() {
                           <th>Items</th>
                           <th>Total</th>
                           <th>Date</th>
+                          <th>Details</th>
                         </tr>
                       </thead>
                       <tbody>
                         {orders.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="admin-table-empty">No orders yet.</td>
+                            <td colSpan={7} className="admin-table-empty">No orders yet.</td>
                           </tr>
                         ) : (
                           orders.slice(0, 50).map((order) => (
@@ -232,12 +269,88 @@ export default function AdminDashboardPage() {
                               <td>{order.items?.length ?? 0}</td>
                               <td>${Number(order.total ?? 0).toFixed(2)}</td>
                               <td>{order.date ? new Date(order.date).toLocaleDateString(undefined, { dateStyle: 'short' }) : '—'}</td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="admin-order-detail-btn"
+                                  aria-expanded={detailOrderId === order.orderId}
+                                  onClick={() => toggleOrderDetail(order.orderId)}
+                                >
+                                  {detailOrderId === order.orderId ? 'Hide' : 'View'}
+                                </button>
+                              </td>
                             </tr>
                           ))
                         )}
                       </tbody>
                     </table>
                   </div>
+
+                  {detailOrder && (
+                    <div className="admin-order-details-panel">
+                      <h2 className="admin-order-details-title">Order details</h2>
+                      <div className="admin-order-details-meta">
+                        <div>
+                          <span className="admin-order-details-label">Customer</span>
+                          <span className="admin-order-details-value">{detailOrder.customerName || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="admin-order-details-label">Email</span>
+                          <span className="admin-order-details-value">{detailOrder.customerEmail || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="admin-order-details-label">Order ID</span>
+                          <span className="admin-order-details-value"><code>{detailOrder.orderId}</code></span>
+                        </div>
+                        <div>
+                          <span className="admin-order-details-label">Date</span>
+                          <span className="admin-order-details-value">
+                            {detailOrder.date ? new Date(detailOrder.date).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="admin-order-details-label">Total</span>
+                          <span className="admin-order-details-value">${Number(detailOrder.total ?? 0).toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div className="admin-table-wrap admin-order-details-table-wrap">
+                        <table className="admin-table admin-order-line-items">
+                          <thead>
+                            <tr>
+                              <th className="admin-order-col-image">Image</th>
+                              <th>Product</th>
+                              <th>Category</th>
+                              <th>Size</th>
+                              <th>Color</th>
+                              <th>Qty</th>
+                              <th>Line total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(!detailOrder.items || detailOrder.items.length === 0) ? (
+                              <tr>
+                                <td colSpan={7} className="admin-table-empty">No line items on this order.</td>
+                              </tr>
+                            ) : (
+                              detailOrder.items.map((item, index) => (
+                                <tr key={lineItemKey(detailOrder.orderId, item, index)}>
+                                  <td className="admin-order-col-image">
+                                    <OrderLineImage src={item.image} alt={item.name} />
+                                  </td>
+                                  <td>{item.name || '—'}</td>
+                                  <td>{item.category || '—'}</td>
+                                  <td>{item.size || '—'}</td>
+                                  <td>{item.color || '—'}</td>
+                                  <td>{item.quantity ?? '—'}</td>
+                                  <td>${(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}</td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </section>
               )}
 

@@ -80,7 +80,6 @@ export const STORE_CATALOG_PATHS = [
   "Women stuff/Female U shorts Yoga/Red and Black female short.png",
   "Women stuff/Female U shorts Yoga/White and Royal Blue Female Shorts blue strips.png",
   "Women stuff/Female U shorts Yoga/White and Royal Blue Female Shorts.png",
-  "Women stuff/Female U shorts Yoga/red and white and black female shorts.png",
   "Women stuff/Female U shorts Yoga/red with black and white dots female shorts.png",
   "Women stuff/White Logo Collection/Female White U ball Logo T-Shirts/Light Grey u ball.png",
   "Women stuff/White Logo Collection/Female White U ball Logo T-Shirts/Light pink u ball.png",

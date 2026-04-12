@@ -48,12 +48,16 @@ function productMatchesCategory(product, categoryId) {
   return true
 }
 
-/** Section / pill label: clearer than raw category for crop lines. */
+/** Small line above section title: broad apparel type (product.category is the line name). */
 function sectionCategoryHeading(items) {
   const p = items?.[0]
   if (!p) return 'Shop'
-  if (p.storeType === 'crop') return 'Crop tops'
-  return p.category || 'Shop'
+  const st = p.storeType
+  if (st === 'crop') return 'Crop tops'
+  if (st === 'hoodies') return 'Hoodies'
+  if (st === 'shorts') return 'Shorts'
+  if (st === 'tshirts') return 'T-Shirts'
+  return 'Shop'
 }
 
 /** Group by folder path so each public subfolder is its own section. */

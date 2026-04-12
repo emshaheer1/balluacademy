@@ -48,6 +48,7 @@ export default function CheckoutModal({ onClose, onSuccess }) {
           items: cart.map((i) => ({
             productId: i.productId,
             name: i.name,
+            category: i.category,
             quantity: i.quantity,
             size: i.size,
             color: i.color,
