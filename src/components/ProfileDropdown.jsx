@@ -28,6 +28,13 @@ function formatDate(iso) {
   }
 }
 
+/** Short `BU-` ids show in full; legacy Stripe `cs_` ids stay compact. */
+function formatOrderRef(orderId) {
+  const s = String(orderId || '')
+  if (/^BU-/i.test(s)) return `#${s}`
+  return `#${s.slice(-8).toUpperCase()}`
+}
+
 export default function ProfileDropdown({ onClose, buttonRef }) {
   const { user, logout, updateAddress, updateProfile } = useAuth()
   const { orders } = useOrders()
@@ -160,7 +167,7 @@ export default function ProfileDropdown({ onClose, buttonRef }) {
               <ul className="profile-orders-list">
                 {orders.map((order) => (
                   <li key={order.orderId} className="profile-order-item">
-                    <div className="profile-order-id">#{order.orderId.slice(-8).toUpperCase()}</div>
+                    <div className="profile-order-id">{formatOrderRef(order.orderId)}</div>
                     <div className="profile-order-meta">{formatDate(order.date)} · {order.items?.length || 0} items · {formatCurrency(order.total)}</div>
                   </li>
                 ))}

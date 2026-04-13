@@ -27,21 +27,24 @@ export default function CheckoutSuccessPage() {
 
     api(`api/stripe/session/${sessionId}`)
       .then(async (data) => {
-        setOrder(data)
+        const stripeSessionId = data.stripeSessionId || sessionId
         // Save to MongoDB even if Stripe webhook never reached the server (e.g. local dev).
+        // Server assigns short `BU-` orderId and stores Stripe session id separately.
         try {
-          await api('api/orders', {
+          const saved = await api('api/orders', {
             method: 'POST',
             body: JSON.stringify({
-              orderId: data.orderId,
+              stripeSessionId,
               items: data.items,
               total: data.total,
               customerName: data.customerName,
               customerEmail: data.customerEmail,
             }),
           })
+          setOrder({ ...data, ...saved })
         } catch (e) {
           console.warn('Could not persist order to database:', e?.message || e)
+          setOrder(data)
         }
       })
       .catch((e) => setError(e.message || 'Could not load order details.'))
@@ -71,7 +74,10 @@ export default function CheckoutSuccessPage() {
           </p>
 
           <div style={{ margin: '1.5rem 0', textAlign: 'left' }}>
-            <p className="muted small" style={{ marginBottom: '0.5rem' }}>Order ID: <code style={{ fontSize: '0.75rem' }}>{order.orderId}</code></p>
+            <p className="muted small" style={{ marginBottom: '0.5rem' }}>
+              Order number:{' '}
+              <code style={{ fontSize: '0.875rem' }}>{order.orderId || 'Finalizing…'}</code>
+            </p>
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
               {order.items.map((item, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0' }}>

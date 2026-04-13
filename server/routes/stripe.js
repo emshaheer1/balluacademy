@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import Stripe from 'stripe'
 import Order from '../models/Order.js'
+import { generateUniqueBuOrderId } from '../lib/orderNumber.js'
+import { findAndNormalizeStripeOrder } from '../lib/resolveStripeOrder.js'
 
 const router = Router()
 
@@ -147,8 +149,13 @@ router.post('/webhook', async (req, res) => {
       const customerEmail = (session.customer_email || session.metadata?.customerEmail || '').toLowerCase()
       const customerName = session.metadata?.customerName || ''
 
+      const existing = await findAndNormalizeStripeOrder(session.id)
+      if (existing) return res.json({ received: true })
+
+      const orderId = await generateUniqueBuOrderId(Order)
       await Order.create({
-        orderId: session.id,
+        orderId,
+        stripeSessionId: session.id,
         items,
         total,
         customerName,
@@ -192,8 +199,11 @@ router.get('/session/:sessionId', async (req, res) => {
       }
     })
 
+    const saved = await findAndNormalizeStripeOrder(session.id)
+
     return res.json({
-      orderId: session.id,
+      stripeSessionId: session.id,
+      orderId: saved?.orderId || null,
       total: (session.amount_total || 0) / 100,
       customerEmail: session.customer_email || '',
       customerName: session.metadata?.customerName || '',

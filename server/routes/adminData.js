@@ -34,6 +34,7 @@ router.get('/orders', async (req, res) => {
     const orders = await Order.find({}).sort({ createdAt: -1 }).limit(500).lean()
     const list = orders.map((o) => ({
       orderId: o.orderId,
+      stripeSessionId: o.stripeSessionId || null,
       items: o.items,
       total: o.total,
       customerName: o.customerName,
@@ -66,6 +67,7 @@ router.patch('/orders/:orderId/dispatch', async (req, res) => {
 
     return res.json({
       orderId: order.orderId,
+      stripeSessionId: order.stripeSessionId || null,
       items: order.items,
       total: order.total,
       customerName: order.customerName,

@@ -31,9 +31,10 @@ export function OrdersProvider({ children }) {
 
   const addOrder = useCallback(async (orderData) => {
     try {
-      await api('api/orders', {
+      const saved = await api('api/orders', {
         method: 'POST',
         body: JSON.stringify({
+          stripeSessionId: orderData.stripeSessionId,
           orderId: orderData.orderId,
           items: orderData.items,
           total: orderData.total,
@@ -41,7 +42,7 @@ export function OrdersProvider({ children }) {
           customerEmail: orderData.customerEmail,
         }),
       })
-      setOrders((prev) => [{ ...orderData, date: new Date().toISOString() }, ...prev])
+      setOrders((prev) => [{ ...orderData, ...saved, date: saved.date || new Date().toISOString() }, ...prev])
     } catch (e) {
       console.error('Failed to save order:', e)
       setOrders((prev) => [{ ...orderData, date: new Date().toISOString() }, ...prev])

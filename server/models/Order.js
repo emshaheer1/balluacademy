@@ -3,6 +3,8 @@ import mongoose from 'mongoose'
 const orderSchema = new mongoose.Schema(
   {
     orderId: { type: String, required: true, unique: true },
+    /** Stripe Checkout Session id — used for webhooks/refunds; not shown as the customer order number. */
+    stripeSessionId: { type: String, default: null, sparse: true, unique: true },
     items: [
       {
         productId: String,
@@ -32,6 +34,7 @@ orderSchema.set('toJSON', {
     delete ret.__v
     delete ret.createdAt
     delete ret.updatedAt
+    delete ret.stripeSessionId
     return ret
   },
 })
