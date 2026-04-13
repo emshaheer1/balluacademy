@@ -3,20 +3,39 @@ import Order from '../models/Order.js'
 
 const router = Router()
 
-// Create order (checkout)
+// Create order (checkout) — idempotent by orderId so the success page can persist
+// when the Stripe webhook did not run (common in local dev without stripe listen).
 router.post('/', async (req, res) => {
   try {
     const { orderId, items, total, customerName, customerEmail } = req.body
     if (!orderId || !Array.isArray(items) || total == null) {
       return res.status(400).json({ error: 'orderId, items and total are required' })
     }
-    const order = await Order.create({
-      orderId,
-      items,
-      total: Number(total),
-      customerName: customerName || '',
-      customerEmail: customerEmail || '',
-    })
+
+    const existing = await Order.findOne({ orderId })
+    if (existing) {
+      const data = existing.toJSON()
+      data.date = existing.createdAt
+      return res.status(200).json(data)
+    }
+
+    let order
+    try {
+      order = await Order.create({
+        orderId,
+        items,
+        total: Number(total),
+        customerName: customerName || '',
+        customerEmail: (customerEmail || '').trim().toLowerCase(),
+      })
+    } catch (e) {
+      if (e.code === 11000) {
+        order = await Order.findOne({ orderId })
+        if (!order) throw e
+      } else {
+        throw e
+      }
+    }
     const data = order.toJSON()
     data.date = order.createdAt
     return res.status(201).json(data)

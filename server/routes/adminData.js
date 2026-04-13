@@ -38,12 +38,45 @@ router.get('/orders', async (req, res) => {
       total: o.total,
       customerName: o.customerName,
       customerEmail: o.customerEmail,
+      dispatched: Boolean(o.dispatched),
+      dispatchedAt: o.dispatchedAt || null,
       date: o.createdAt,
     }))
     return res.json(list)
   } catch (e) {
     console.error(e)
     return res.status(500).json({ error: 'Failed to fetch orders' })
+  }
+})
+
+// Mark order as dispatched (for dashboard)
+router.patch('/orders/:orderId/dispatch', async (req, res) => {
+  try {
+    const orderId = String(req.params.orderId || '').trim()
+    if (!orderId) return res.status(400).json({ error: 'Order ID is required' })
+
+    const order = await Order.findOne({ orderId })
+    if (!order) return res.status(404).json({ error: 'Order not found' })
+
+    if (!order.dispatched) {
+      order.dispatched = true
+      order.dispatchedAt = new Date()
+      await order.save()
+    }
+
+    return res.json({
+      orderId: order.orderId,
+      items: order.items,
+      total: order.total,
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      dispatched: Boolean(order.dispatched),
+      dispatchedAt: order.dispatchedAt || null,
+      date: order.createdAt,
+    })
+  } catch (e) {
+    console.error(e)
+    return res.status(500).json({ error: 'Failed to update dispatch status' })
   }
 })
 

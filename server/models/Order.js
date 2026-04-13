@@ -18,6 +18,8 @@ const orderSchema = new mongoose.Schema(
     total: { type: Number, required: true },
     customerName: { type: String, default: '' },
     customerEmail: { type: String, default: '' },
+    dispatched: { type: Boolean, default: false },
+    dispatchedAt: { type: Date, default: null },
   },
   { timestamps: true }
 )

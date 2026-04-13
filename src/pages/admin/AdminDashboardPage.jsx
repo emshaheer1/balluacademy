@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, Users, ShoppingBag, ClipboardList, MessageSquare, Sun, Moon } from 'lucide-react'
+import { BarChart3, Users, ShoppingBag, ClipboardList, MessageSquare, Sun, Moon, Truck, CheckCircle2 } from 'lucide-react'
 import { useAdmin } from '../../context/AdminContext'
 import { useTheme } from '../../context/ThemeContext'
 import { apiWithAuth } from '../../api/client'
@@ -37,6 +37,8 @@ const SECTIONS = [
   { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
   { id: 'customers', label: 'Customer accounts', Icon: Users },
   { id: 'orders', label: 'Orders', Icon: ShoppingBag },
+  { id: 'order-details', label: 'Order details', Icon: ClipboardList },
+  { id: 'orders-dispatched', label: 'Orders dispatched', Icon: Truck },
   { id: 'customer-details', label: 'Customer details', Icon: ClipboardList },
   { id: 'contacts', label: 'Contact page requests', Icon: MessageSquare },
 ]
@@ -53,6 +55,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [detailOrderId, setDetailOrderId] = useState(null)
+  const [dispatchingOrderId, setDispatchingOrderId] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -109,9 +112,27 @@ export default function AdminDashboardPage() {
     () => (detailOrderId ? orders.find((o) => o.orderId === detailOrderId) : null),
     [orders, detailOrderId]
   )
+  const pendingOrders = useMemo(() => orders.filter((o) => !o.dispatched), [orders])
+  const dispatchedOrders = useMemo(() => orders.filter((o) => o.dispatched), [orders])
 
   const toggleOrderDetail = useCallback((orderId) => {
     setDetailOrderId((current) => (current === orderId ? null : orderId))
+  }, [])
+
+  const handleDispatchOrder = useCallback(async (orderId) => {
+    if (!orderId) return
+    setDispatchingOrderId(orderId)
+    setError(null)
+    try {
+      const updated = await apiWithAuth(`api/admin/orders/${encodeURIComponent(orderId)}/dispatch`, {
+        method: 'PATCH',
+      })
+      setOrders((prev) => prev.map((o) => (o.orderId === orderId ? { ...o, ...updated } : o)))
+    } catch (err) {
+      setError(err?.message || 'Failed to mark order as dispatched')
+    } finally {
+      setDispatchingOrderId(null)
+    }
   }, [])
 
   return (
@@ -241,7 +262,7 @@ export default function AdminDashboardPage() {
               {activeSection === 'orders' && (
                 <section className="admin-orders-section">
                   <h1 className="admin-section-title">Orders</h1>
-                  <p className="admin-section-sub">All orders placed by customers. Open order details to see product images, titles, category, size, and color for each line.</p>
+                  <p className="admin-section-sub">Overview of all orders placed by customers.</p>
                   <div className="admin-table-wrap">
                     <table className="admin-table">
                       <thead>
@@ -252,7 +273,7 @@ export default function AdminDashboardPage() {
                           <th>Items</th>
                           <th>Total</th>
                           <th>Date</th>
-                          <th>Details</th>
+                          <th>Status</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -269,6 +290,43 @@ export default function AdminDashboardPage() {
                               <td>{order.items?.length ?? 0}</td>
                               <td>${Number(order.total ?? 0).toFixed(2)}</td>
                               <td>{order.date ? new Date(order.date).toLocaleDateString(undefined, { dateStyle: 'short' }) : '—'}</td>
+                              <td>{order.dispatched ? 'Dispatched' : 'Pending'}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {activeSection === 'order-details' && (
+                <section className="admin-orders-section">
+                  <h1 className="admin-section-title">Order details</h1>
+                  <p className="admin-section-sub">View pending orders and inspect every line item before dispatching.</p>
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Order ID</th>
+                          <th>Customer name</th>
+                          <th>Email</th>
+                          <th>Quantity</th>
+                          <th>View details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pendingOrders.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="admin-table-empty">No pending orders.</td>
+                          </tr>
+                        ) : (
+                          pendingOrders.slice(0, 100).map((order) => (
+                            <tr key={order.orderId}>
+                              <td><code>{order.orderId}</code></td>
+                              <td>{order.customerName || '—'}</td>
+                              <td>{order.customerEmail || '—'}</td>
+                              <td>{order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0}</td>
                               <td>
                                 <button
                                   type="button"
@@ -276,7 +334,7 @@ export default function AdminDashboardPage() {
                                   aria-expanded={detailOrderId === order.orderId}
                                   onClick={() => toggleOrderDetail(order.orderId)}
                                 >
-                                  {detailOrderId === order.orderId ? 'Hide' : 'View'}
+                                  {detailOrderId === order.orderId ? 'Hide details' : 'View details'}
                                 </button>
                               </td>
                             </tr>
@@ -288,7 +346,7 @@ export default function AdminDashboardPage() {
 
                   {detailOrder && (
                     <div className="admin-order-details-panel">
-                      <h2 className="admin-order-details-title">Order details</h2>
+                      <h2 className="admin-order-details-title">Order #{detailOrder.orderId}</h2>
                       <div className="admin-order-details-meta">
                         <div>
                           <span className="admin-order-details-label">Customer</span>
@@ -299,29 +357,23 @@ export default function AdminDashboardPage() {
                           <span className="admin-order-details-value">{detailOrder.customerEmail || '—'}</span>
                         </div>
                         <div>
-                          <span className="admin-order-details-label">Order ID</span>
-                          <span className="admin-order-details-value"><code>{detailOrder.orderId}</code></span>
-                        </div>
-                        <div>
-                          <span className="admin-order-details-label">Date</span>
+                          <span className="admin-order-details-label">Order date</span>
                           <span className="admin-order-details-value">
                             {detailOrder.date ? new Date(detailOrder.date).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
                           </span>
                         </div>
-                        <div>
-                          <span className="admin-order-details-label">Total</span>
-                          <span className="admin-order-details-value">${Number(detailOrder.total ?? 0).toFixed(2)}</span>
-                        </div>
                       </div>
+
                       <div className="admin-table-wrap admin-order-details-table-wrap">
                         <table className="admin-table admin-order-line-items">
                           <thead>
                             <tr>
-                              <th className="admin-order-col-image">Image</th>
-                              <th>Product</th>
+                              <th className="admin-order-col-image">Product image</th>
                               <th>Category</th>
+                              <th>Product title</th>
                               <th>Size</th>
                               <th>Color</th>
+                              <th>Price</th>
                               <th>Qty</th>
                               <th>Line total</th>
                             </tr>
@@ -329,7 +381,7 @@ export default function AdminDashboardPage() {
                           <tbody>
                             {(!detailOrder.items || detailOrder.items.length === 0) ? (
                               <tr>
-                                <td colSpan={7} className="admin-table-empty">No line items on this order.</td>
+                                <td colSpan={8} className="admin-table-empty">No line items on this order.</td>
                               </tr>
                             ) : (
                               detailOrder.items.map((item, index) => (
@@ -337,10 +389,11 @@ export default function AdminDashboardPage() {
                                   <td className="admin-order-col-image">
                                     <OrderLineImage src={item.image} alt={item.name} />
                                   </td>
-                                  <td>{item.name || '—'}</td>
                                   <td>{item.category || '—'}</td>
+                                  <td>{item.name || '—'}</td>
                                   <td>{item.size || '—'}</td>
                                   <td>{item.color || '—'}</td>
+                                  <td>${Number(item.price || 0).toFixed(2)}</td>
                                   <td>{item.quantity ?? '—'}</td>
                                   <td>${(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}</td>
                                 </tr>
@@ -349,8 +402,68 @@ export default function AdminDashboardPage() {
                           </tbody>
                         </table>
                       </div>
+
+                      <div className="admin-order-details-footer">
+                        <div className="admin-order-grand-total">
+                          Total price: <strong>${Number(detailOrder.total ?? 0).toFixed(2)}</strong>
+                        </div>
+                        {detailOrder.dispatched ? (
+                          <span className="admin-dispatched-chip" title="Order dispatched">
+                            <CheckCircle2 size={16} strokeWidth={2} />
+                            Dispatched
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-primary admin-dispatch-btn"
+                            onClick={() => handleDispatchOrder(detailOrder.orderId)}
+                            disabled={dispatchingOrderId === detailOrder.orderId}
+                          >
+                            {dispatchingOrderId === detailOrder.orderId ? 'Saving...' : 'Dispatched to customer'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
+                </section>
+              )}
+
+              {activeSection === 'orders-dispatched' && (
+                <section className="admin-orders-section">
+                  <h1 className="admin-section-title">Orders dispatched</h1>
+                  <p className="admin-section-sub">Confirmed dispatched orders are stored here.</p>
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Order ID</th>
+                          <th>Customer</th>
+                          <th>Email</th>
+                          <th>Items</th>
+                          <th>Total</th>
+                          <th>Dispatched at</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dispatchedOrders.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="admin-table-empty">No dispatched orders yet.</td>
+                          </tr>
+                        ) : (
+                          dispatchedOrders.map((order) => (
+                            <tr key={order.orderId}>
+                              <td><code>{order.orderId}</code></td>
+                              <td>{order.customerName || '—'}</td>
+                              <td>{order.customerEmail || '—'}</td>
+                              <td>{order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0}</td>
+                              <td>${Number(order.total ?? 0).toFixed(2)}</td>
+                              <td>{order.dispatchedAt ? new Date(order.dispatchedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </section>
               )}
 

@@ -26,7 +26,24 @@ export default function CheckoutSuccessPage() {
     clearCart()
 
     api(`api/stripe/session/${sessionId}`)
-      .then((data) => setOrder(data))
+      .then(async (data) => {
+        setOrder(data)
+        // Save to MongoDB even if Stripe webhook never reached the server (e.g. local dev).
+        try {
+          await api('api/orders', {
+            method: 'POST',
+            body: JSON.stringify({
+              orderId: data.orderId,
+              items: data.items,
+              total: data.total,
+              customerName: data.customerName,
+              customerEmail: data.customerEmail,
+            }),
+          })
+        } catch (e) {
+          console.warn('Could not persist order to database:', e?.message || e)
+        }
+      })
       .catch((e) => setError(e.message || 'Could not load order details.'))
       .finally(() => setLoading(false))
   }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps

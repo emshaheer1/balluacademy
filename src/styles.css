@@ -5467,6 +5467,36 @@ a:focus-visible {
   color: var(--text-muted);
 }
 
+.admin-order-details-footer {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-order-grand-total {
+  font-size: 0.95rem;
+}
+
+.admin-dispatch-btn {
+  min-width: 200px;
+}
+
+.admin-dispatched-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f766e;
+  background: rgba(13, 148, 136, 0.1);
+  border: 1px solid rgba(13, 148, 136, 0.35);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+}
+
 /* Not Found page */
 .not-found-page {
   min-height: 60vh;
