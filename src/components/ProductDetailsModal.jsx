@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Heart, StickyNote, X } from 'lucide-react'
+import { Heart, Ruler, X } from 'lucide-react'
 import { useFavourites } from '../context/FavouritesContext'
 import { FALLBACK_IMG, PRODUCT_DETAIL_SIZES, getVariantsInCollection } from '../data/products'
+import { getSizeChartImageSrc, getSizeChartKindLabel } from '../data/sizeCharts'
 
 function formatCurrency(v) {
   return `$${Number(v).toFixed(2)}`
@@ -43,16 +44,34 @@ export default function ProductDetailsModal({ product, onClose, onAddToCart }) {
   const { isFavourite, toggleFavourite } = useFavourites()
   const [selectedSize, setSelectedSize] = useState('M')
   const [activeVariant, setActiveVariant] = useState(product)
+  const [sizeChartOpen, setSizeChartOpen] = useState(false)
 
   const variants = useMemo(() => (product ? getVariantsInCollection(product) : []), [product])
+
+  const chartSrc = useMemo(() => getSizeChartImageSrc(activeVariant), [activeVariant])
+  const chartLabel = useMemo(() => getSizeChartKindLabel(activeVariant), [activeVariant])
 
   useEffect(() => {
     if (!product) return
     setSelectedSize('M')
+    setSizeChartOpen(false)
     const list = getVariantsInCollection(product)
     const match = list.find((v) => v.id === product.id) || list[0]
     setActiveVariant(match || product)
   }, [product?.id])
+
+  useEffect(() => {
+    setSizeChartOpen(false)
+  }, [activeVariant?.id])
+
+  useEffect(() => {
+    if (!sizeChartOpen) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setSizeChartOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [sizeChartOpen])
 
   if (!product || !activeVariant) return null
 
@@ -83,14 +102,20 @@ export default function ProductDetailsModal({ product, onClose, onAddToCart }) {
                   }}
                 />
               </div>
-              <div className="product-details-size-note-box" role="note" aria-label="Sizing note">
-                <span className="product-details-size-note-icon" aria-hidden="true">
-                  <StickyNote size={18} strokeWidth={2} />
-                </span>
-                <p className="product-details-size-note-text">
-                  Sizes follow <strong>US standard apparel sizing</strong>. If you are between sizes, we recommend sizing up for a relaxed fit.
-                </p>
-              </div>
+              {chartSrc ? (
+                <div className="product-details-size-chart-wrap">
+                  <button
+                    type="button"
+                    className="product-details-size-chart-btn"
+                    onClick={() => setSizeChartOpen(true)}
+                    aria-haspopup="dialog"
+                    aria-expanded={sizeChartOpen}
+                  >
+                    <Ruler size={18} strokeWidth={2} aria-hidden />
+                    Size chart
+                  </button>
+                </div>
+              ) : null}
             </div>
             <div className="product-details-content product-details-content-pro">
               <p className="product-details-eyebrow">{activeVariant.categoryShort || activeVariant.category}</p>
@@ -174,6 +199,36 @@ export default function ProductDetailsModal({ product, onClose, onAddToCart }) {
           </div>
         </div>
       </div>
+
+      {sizeChartOpen && chartSrc ? (
+        <>
+          <div
+            className="size-chart-lightbox-backdrop"
+            aria-hidden="true"
+            onClick={() => setSizeChartOpen(false)}
+          />
+          <div
+            className="size-chart-lightbox"
+            role="dialog"
+            aria-modal="true"
+            aria-label={chartLabel}
+          >
+            <div className="size-chart-lightbox-card">
+              <button
+                type="button"
+                className="size-chart-lightbox-close"
+                aria-label="Close size chart"
+                onClick={() => setSizeChartOpen(false)}
+              >
+                <X size={20} strokeWidth={2} />
+              </button>
+              <div className="size-chart-lightbox-body">
+                <img src={chartSrc} alt={chartLabel} />
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
     </>
   )
 }

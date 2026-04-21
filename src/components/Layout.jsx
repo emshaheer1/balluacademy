@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Sun, Moon, ShoppingCart, X, ChevronDown, LogIn } from 'lucide-react'
+import { Sun, Moon, ShoppingCart, X, ChevronDown, ChevronRight, LogIn } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { useCart } from '../context/CartContext'
 import { OpenCartProvider } from '../context/OpenCartContext'
@@ -13,6 +13,7 @@ import ProfileDropdown from './ProfileDropdown'
 import { useAuth } from '../context/AuthContext'
 import { useOrders } from '../context/OrdersContext'
 import { api } from '../api/client'
+import { MEN_COLLECTION_MENU, WOMEN_COLLECTION_MENU } from '../data/productCollections'
 
 function ScrollToHash() {
   const location = useLocation()
@@ -70,11 +71,12 @@ function Header({ onOpenCart, onOpenLogin, profileOpen, onOpenProfile, onClosePr
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
   const [productsDropdownOpen, setProductsDropdownOpen] = useState(false)
+  const [activeProductsSubmenu, setActiveProductsSubmenu] = useState(null)
   const profileButtonRef = useRef(null)
   const productsDropdownRef = useRef(null)
 
   const isContact = location.pathname === '/contact'
-  const isProducts = location.pathname === '/products'
+  const isProducts = location.pathname.startsWith('/products')
   const navLinkClass = (path) => {
     if (path === '/contact') return isContact ? 'nav-active' : ''
     if (path === '/products') return isProducts ? 'nav-active' : ''
@@ -82,10 +84,14 @@ function Header({ onOpenCart, onOpenLogin, profileOpen, onOpenProfile, onClosePr
   }
 
   const closeNav = () => setNavOpen(false)
+  const closeProductsMenus = () => {
+    setProductsDropdownOpen(false)
+    setActiveProductsSubmenu(null)
+  }
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (productsDropdownRef.current && !productsDropdownRef.current.contains(e.target)) setProductsDropdownOpen(false)
+      if (productsDropdownRef.current && !productsDropdownRef.current.contains(e.target)) closeProductsMenus()
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -112,13 +118,73 @@ function Header({ onOpenCart, onOpenLogin, profileOpen, onOpenProfile, onClosePr
             <button className="nav-close" type="button" aria-label="Close menu" onClick={closeNav}><X size={20} strokeWidth={2} /></button>
             <Link to="/" onClick={closeNav}>Home</Link>
             <HashLink to="/#about" onClick={closeNav}>About Us</HashLink>
-            <div className="nav-products-wrap" ref={productsDropdownRef}>
-              <button type="button" className={`nav-products-trigger ${isProducts ? 'nav-active' : ''} ${productsDropdownOpen ? 'open' : ''}`} onClick={() => setProductsDropdownOpen((o) => !o)} aria-expanded={productsDropdownOpen} aria-haspopup="true">
+            <div className="nav-products-wrap" ref={productsDropdownRef} onMouseLeave={() => setActiveProductsSubmenu(null)}>
+              <button
+                type="button"
+                className={`nav-products-trigger ${isProducts ? 'nav-active' : ''} ${productsDropdownOpen ? 'open' : ''}`}
+                onClick={() => setProductsDropdownOpen((o) => !o)}
+                aria-expanded={productsDropdownOpen}
+                aria-haspopup="true"
+              >
                 Products <ChevronDown size={16} strokeWidth={2} className="nav-products-chevron" />
               </button>
               <div className={`nav-products-dropdown ${productsDropdownOpen ? 'open' : ''}`}>
-                <Link to="/products#mens" onClick={() => { setProductsDropdownOpen(false); closeNav(); }}>Men&apos;s</Link>
-                <Link to="/products#womens" onClick={() => { setProductsDropdownOpen(false); closeNav(); }}>Women&apos;s</Link>
+                <div
+                  className={`nav-products-group ${activeProductsSubmenu === 'mens' ? 'active' : ''}`}
+                  onMouseEnter={() => setActiveProductsSubmenu('mens')}
+                >
+                  <button
+                    type="button"
+                    className="nav-products-group-trigger"
+                    onClick={() => setActiveProductsSubmenu((s) => (s === 'mens' ? null : 'mens'))}
+                    aria-expanded={activeProductsSubmenu === 'mens'}
+                  >
+                    <span>Men&apos;s</span>
+                    <ChevronRight size={14} strokeWidth={2} />
+                  </button>
+                  <div className="nav-products-submenu">
+                    {MEN_COLLECTION_MENU.map((item) => (
+                      <Link
+                        key={item.key}
+                        to={`/products/mens/${item.key}`}
+                        onClick={() => {
+                          closeProductsMenus()
+                          closeNav()
+                        }}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+                <div
+                  className={`nav-products-group ${activeProductsSubmenu === 'womens' ? 'active' : ''}`}
+                  onMouseEnter={() => setActiveProductsSubmenu('womens')}
+                >
+                  <button
+                    type="button"
+                    className="nav-products-group-trigger"
+                    onClick={() => setActiveProductsSubmenu((s) => (s === 'womens' ? null : 'womens'))}
+                    aria-expanded={activeProductsSubmenu === 'womens'}
+                  >
+                    <span>Women&apos;s</span>
+                    <ChevronRight size={14} strokeWidth={2} />
+                  </button>
+                  <div className="nav-products-submenu">
+                    {WOMEN_COLLECTION_MENU.map((item) => (
+                      <Link
+                        key={item.key}
+                        to={`/products/womens/${item.key}`}
+                        onClick={() => {
+                          closeProductsMenus()
+                          closeNav()
+                        }}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
             <HashLink to="/#reviews" onClick={closeNav}>Reviews</HashLink>

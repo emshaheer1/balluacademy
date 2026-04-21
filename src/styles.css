@@ -353,7 +353,7 @@ a:focus-visible {
   top: 100%;
   left: 0;
   margin-top: 0.25rem;
-  min-width: 140px;
+  min-width: 180px;
   padding: 0.35rem 0;
   background: var(--bg-soft);
   border: 1px solid var(--border);
@@ -372,7 +372,56 @@ a:focus-visible {
   transform: translateY(0);
 }
 
-.nav-products-dropdown a {
+.nav-products-group {
+  position: relative;
+}
+
+.nav-products-group-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: var(--text);
+  font-size: 0.875rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-products-group-trigger:hover,
+.nav-products-group.active .nav-products-group-trigger {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.nav-products-submenu {
+  position: absolute;
+  top: -1px;
+  left: 100%;
+  min-width: 220px;
+  padding: 0.35rem 0;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(4px);
+  transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+}
+
+.nav-products-group:hover .nav-products-submenu,
+.nav-products-group.active .nav-products-submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.nav-products-submenu a {
   display: block;
   padding: 0.5rem 1rem;
   color: var(--text);
@@ -382,7 +431,7 @@ a:focus-visible {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.nav-products-dropdown a:hover {
+.nav-products-submenu a:hover {
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
@@ -2125,6 +2174,40 @@ a:focus-visible {
   margin-bottom: 1.5rem;
 }
 
+.products-category-filters--boxed .products-category-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5.5rem;
+  text-align: center;
+}
+
+/* Replaces type filter row on /products/mens/* and /products/womens/* */
+.products-collection-lede {
+  max-width: 42rem;
+  margin: 0 auto 1.5rem;
+  padding: 0.75rem 1rem;
+  min-height: 3.25rem;
+  text-align: center;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-soft);
+}
+
+.products-lede-link {
+  font-weight: 600;
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.products-lede-link:hover {
+  color: var(--accent);
+}
+
 .products-category-filter-btn {
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
@@ -3086,50 +3169,110 @@ a:focus-visible {
   }
 }
 
-.product-details-size-note-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
+.product-details-size-chart-wrap {
   margin: 0.75rem 0 0;
   width: 100%;
   max-width: 520px;
-  padding: 0.65rem 0.8rem;
+  align-self: center;
+  display: flex;
+  justify-content: center;
+}
+
+.product-details-size-chart-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 280px;
+  padding: 0.55rem 1rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg-soft);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
   box-shadow: var(--shadow-soft);
-  align-self: center;
 }
 
-.product-details-size-note-icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 6px;
+.product-details-size-chart-btn:hover {
+  border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
 
-[data-theme='dark'] .product-details-size-note-icon {
-  color: var(--accent);
+.size-chart-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgba(15, 23, 42, 0.55);
 }
 
-.product-details-size-note-text {
-  margin: 0;
-  font-size: 0.7rem;
-  line-height: 1.45;
-  color: var(--text-muted);
-  text-align: left;
-  flex: 1;
-  min-width: 0;
+.size-chart-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem 1.25rem;
+  pointer-events: none;
 }
 
-.product-details-size-note-text strong {
+.size-chart-lightbox-card {
+  position: relative;
+  pointer-events: auto;
+  max-width: min(96vw, 920px);
+  max-height: min(88vh, 900px);
+  border-radius: var(--radius-md);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  padding: 0.75rem;
+}
+
+.size-chart-lightbox-body {
+  overflow: auto;
+  max-height: min(82vh, 860px);
+}
+
+.size-chart-lightbox-body img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(78vh, 820px);
+  object-fit: contain;
+}
+
+/* Sits on the top-right corner of the chart card (straddles border) */
+.size-chart-lightbox-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  transform: translate(42%, -42%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
   color: var(--text);
-  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.18);
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s;
+}
+
+.size-chart-lightbox-close:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22);
 }
 
 .product-details-content-pro {
@@ -4338,10 +4481,52 @@ a:focus-visible {
   }
 
   .nav-products-dropdown.open {
-    max-height: 120px;
+    max-height: 1000px;
   }
 
-  .nav-products-dropdown a {
+  .nav-products-group {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-products-group-trigger {
+    width: 100%;
+    padding: 0.6rem 0;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.9375rem;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .nav-products-group.active .nav-products-group-trigger {
+    color: var(--accent-strong);
+  }
+
+  .nav-products-submenu {
+    position: static;
+    min-width: 0;
+    padding: 0 0 0 0.75rem;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    transform: none;
+    opacity: 1;
+    visibility: visible;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+  }
+
+  .nav-products-group.active .nav-products-submenu {
+    max-height: 420px;
+  }
+
+  .nav-products-submenu a {
     padding: 0.6rem 0;
     border-bottom: 1px solid var(--border);
     font-size: 0.9375rem;

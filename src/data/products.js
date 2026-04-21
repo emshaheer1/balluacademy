@@ -1,4 +1,5 @@
 import { STORE_CATALOG_PATHS } from './storeCatalogPaths.js'
+import { getCatalogSectionTitles } from './productCollections.js'
 
 export const MENS_SUBCATEGORIES = ['U Hoodies', 'Logo Branded Hoodies', 'Shorts', 'T-Shirts']
 export const WOMENS_SUBCATEGORIES = ['U Hoodies', 'Logo Branded Hoodies', 'Shorts', 'T-Shirts', 'Crop Top T-Shirts']
@@ -513,78 +514,9 @@ function buildSectionTitleShort(parts) {
   return leaf
 }
 
-/**
- * Customer-facing collection titles (paths stay as on disk for image URLs).
- * Covers: U Hoodies, Ball U Hoodies, U Shorts, U Shorts Yoga, HU shirt/Hoodies, Ball U Shirt, U Not Crop/Tees when paths match.
- */
+/** Customer-facing collection titles — single source of truth in `productCollections.js`. */
 function displayNamesForSectionPath(sectionPath) {
-  const norm = String(sectionPath || '').replace(/\\/g, '/')
-  const l = norm.toLowerCase()
-  if (!l) return null
-
-  if (l.includes('u not ready') || l.includes('u-not-ready')) {
-    if (l.includes('crop')) {
-      return { sectionTitleShort: 'U Not Crop', sectionTitle: 'U Not Crop' }
-    }
-    return { sectionTitleShort: 'U Not Tees', sectionTitle: 'U Not Tees' }
-  }
-  if (l.includes('pattern u hoodies')) {
-    return { sectionTitleShort: 'U Hoodies', sectionTitle: 'U Hoodies' }
-  }
-  if (l.includes('hoodies u ball academy')) {
-    return { sectionTitleShort: 'Ball U Hoodies', sectionTitle: 'Ball U Hoodies' }
-  }
-  if (l === 'mens stuff/mens shorts') {
-    return { sectionTitleShort: 'U Shorts', sectionTitle: 'U Shorts' }
-  }
-  if (l.includes('female u shorts yoga')) {
-    return { sectionTitleShort: 'U Shorts Yoga', sectionTitle: 'U Shorts Yoga' }
-  }
-  if (l.includes('hungry hoodies')) {
-    return { sectionTitleShort: 'HU Hoodies', sectionTitle: 'HU Hoodies' }
-  }
-  if (l.includes('mens hu shirts')) {
-    return { sectionTitleShort: 'HU shirt', sectionTitle: 'HU shirt' }
-  }
-  if (l.includes('hungry female') && l.includes('black logo')) {
-    return {
-      sectionTitleShort: 'HU shirt — Womens Black Edition',
-      sectionTitle: 'HU shirt — Womens Black Edition',
-    }
-  }
-  if (l.includes('hungry female') && l.includes('white logo')) {
-    return {
-      sectionTitleShort: 'HU shirt — Womens White Edition',
-      sectionTitle: 'HU shirt — Womens White Edition',
-    }
-  }
-  if (l.includes('mens ball u shirts')) {
-    return { sectionTitleShort: 'Ball U Shirt', sectionTitle: 'Ball U Shirt' }
-  }
-  if (l.includes('female white u ball logo t-shirts')) {
-    return { sectionTitleShort: 'Ball U Shirt', sectionTitle: 'Ball U Shirt' }
-  }
-  if (l.includes('black logo female crop t-shirt')) {
-    return {
-      sectionTitleShort: 'U Not Crop - Black Edition',
-      sectionTitle: 'U Not Crop - Black Edition',
-    }
-  }
-  if (l.includes('white u ball logo crop')) {
-    return {
-      sectionTitleShort: 'U Not Crop - White Edition',
-      sectionTitle: 'U Not Crop - White Edition',
-    }
-  }
-  return null
-}
-
-/** Ball U / HU tee lines use the same display name for mens and womens — add gender on the label. */
-function withGenderEditionForSharedShirtLines(text, gender) {
-  if (!text) return text
-  if (text !== 'Ball U Shirt' && text !== 'HU shirt') return text
-  const g = gender === 'womens' ? 'Womens' : 'Mens'
-  return `${text} — ${g} Edition`
+  return getCatalogSectionTitles(sectionPath)
 }
 
 function buildStoreCatalogProduct(relPath, idx) {
@@ -638,8 +570,6 @@ function buildStoreCatalogProduct(relPath, idx) {
     if (displayOverride.sectionTitle != null) sectionTitle = displayOverride.sectionTitle
     if (displayOverride.sectionTitleShort != null) sectionTitleShort = displayOverride.sectionTitleShort
   }
-  sectionTitle = withGenderEditionForSharedShirtLines(sectionTitle, gender)
-  sectionTitleShort = withGenderEditionForSharedShirtLines(sectionTitleShort, gender)
   const sectionSlug = `${gender}-${slugifyPathSegment(sectionPath)}`
 
   let name = buildShortProductTitle(color, storeType)
