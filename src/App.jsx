@@ -9,6 +9,10 @@ import Layout from './components/Layout'
 import AdminLayout from './components/AdminLayout'
 import HomePage from './pages/HomePage'
 import ProductsPage from './pages/ProductsPage'
+import ProductQuickReviewPage from './pages/ProductQuickReviewPage'
+import CartPage from './pages/CartPage'
+import CheckoutAuthPage from './pages/CheckoutAuthPage'
+import CheckoutPage from './pages/CheckoutPage'
 import ContactPage from './pages/ContactPage'
 import AdminLoginPage from './pages/admin/AdminLoginPage'
 import AdminSignupPage from './pages/admin/AdminSignupPage'
@@ -29,6 +33,10 @@ function App() {
                   <Route path="/" element={<Layout><HomePage /></Layout>} />
                   <Route path="/products" element={<Layout><ProductsPage /></Layout>} />
                   <Route path="/products/:gender/:collection" element={<Layout><ProductsPage /></Layout>} />
+                  <Route path="/quick-review/:productId" element={<Layout><ProductQuickReviewPage /></Layout>} />
+                  <Route path="/cart" element={<Layout><CartPage /></Layout>} />
+                  <Route path="/checkout-auth" element={<Layout><CheckoutAuthPage /></Layout>} />
+                  <Route path="/checkout" element={<Layout><CheckoutPage /></Layout>} />
                   <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
                   <Route path="/admin" element={<AdminLayout><AdminDashboardPage /></AdminLayout>} />
                   <Route path="/admin/login" element={<AdminLayout><AdminLoginPage /></AdminLayout>} />

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Info, X } from 'lucide-react'
+import { X, Tag } from 'lucide-react'
 import { useCart, cartLineId } from '../context/CartContext'
 import { api } from '../api/client'
 
@@ -8,10 +8,12 @@ function formatCurrency(v) {
 }
 
 export default function CheckoutModal({ onClose, onSuccess }) {
-  const { cart, cartTotal, updateQuantity, removeFromCart, clearCart } = useCart()
+  const { cart, cartTotal } = useCart()
   const [message, setMessage] = useState('')
   const [messageError, setMessageError] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [promoCode, setPromoCode] = useState('')
+  const [promoApplied, setPromoApplied] = useState(false)
 
   const [form, setForm] = useState({
     name: '',
@@ -64,12 +66,20 @@ export default function CheckoutModal({ onClose, onSuccess }) {
           },
         }),
       })
-      // Redirect to Stripe hosted checkout — cart is cleared on successful return via /checkout/success
       window.location.href = url
     } catch (err) {
       setMessage(err.message || 'Failed to start checkout. Please try again.')
       setMessageError(true)
       setLoading(false)
+    }
+  }
+
+  const handlePromoApply = (e) => {
+    e.preventDefault()
+    if (promoCode.trim()) {
+      setPromoApplied(true)
+      setMessage('Promo code will be applied at payment step.')
+      setMessageError(false)
     }
   }
 
@@ -80,105 +90,145 @@ export default function CheckoutModal({ onClose, onSuccess }) {
         <div className="modal-inner checkout-inner">
           <button type="button" className="modal-close" aria-label="Close checkout" onClick={onClose}><X size={20} strokeWidth={2} /></button>
           <div className="checkout-layout">
-            <div className="checkout-cart-column">
-              <h2>Your cart</h2>
-              <p className="muted">Review your items before entering your details.</p>
-              <div className="checkout-cart-body">
-                <div className="checkout-cart-main">
-                  <div className="cart-items">
-                    {!cart.length ? (
-                      <p className="small muted" style={{ padding: '0.75rem', textAlign: 'center' }}>Your cart is empty.</p>
-                    ) : (
-                      cart.map((item) => {
-                        const line = item.cartLineId || cartLineId(item.productId, item.size)
-                        return (
-                          <div key={line} className="cart-item">
-                            <div className="cart-item-thumb">
-                              <img src={item.image} alt={item.name} />
-                            </div>
-                            <div className="cart-item-main">
-                              <div className="cart-item-title">{item.name}</div>
-                              <div className="cart-item-meta">Size: {item.size || 'M'} • Color: {item.color || '—'}</div>
-                              <div className="cart-item-meta">Unit: {formatCurrency(item.price)}</div>
-                            </div>
-                            <div className="cart-item-controls">
-                              <div className="qty-controls">
-                                <button type="button" className="qty-control" onClick={() => updateQuantity(line, -1)}>−</button>
-                                <span className="qty-value">{item.quantity}</span>
-                                <button type="button" className="qty-control" onClick={() => updateQuantity(line, 1)}>+</button>
-                              </div>
-                              <button type="button" className="remove-btn" onClick={() => removeFromCart(line)}>Remove</button>
-                            </div>
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
-                  <div className="cart-summary">
-                    <div className="summary-row">
-                      <span>Subtotal</span>
-                      <span>{formatCurrency(cartTotal)}</span>
-                    </div>
-                    <p className="muted small">Taxes and shipping are calculated after your order.</p>
-                  </div>
-                </div>
-                <aside className="cart-side-note" aria-label="Shopping tip">
-                  <span className="cart-side-note-icon" aria-hidden="true"><Info size={18} strokeWidth={2} /></span>
-                  <p>
-                    Please select your <strong>size</strong> and <strong>color</strong> in the product <strong>View details</strong> before adding to your cart, so your order matches what you want.
-                  </p>
-                </aside>
-              </div>
-            </div>
+
+            {/* LEFT — Customer information */}
             <div className="checkout-form-column">
-              <h2>Customer details</h2>
-              <p className="muted">Enter your information so we can confirm your order.</p>
-              <form className="checkout-form" onSubmit={handleSubmit}>
+              <div className="checkout-col-header">
+                <h2>Shipping details</h2>
+                <p className="checkout-col-sub">Enter your address so we can confirm your order.</p>
+              </div>
+              <form className="checkout-form" onSubmit={handleSubmit} id="checkout-form">
                 <div className="form-row">
                   <div className="form-field">
-                    <label htmlFor="checkout-name">Full name*</label>
-                    <input id="checkout-name" type="text" required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+                    <label htmlFor="checkout-name">Full name <span className="form-required">*</span></label>
+                    <input id="checkout-name" type="text" required placeholder="John Doe" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
                   </div>
                   <div className="form-field">
-                    <label htmlFor="checkout-email">Email*</label>
-                    <input id="checkout-email" type="email" required value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+                    <label htmlFor="checkout-email">Email <span className="form-required">*</span></label>
+                    <input id="checkout-email" type="email" required placeholder="you@email.com" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-field">
                     <label htmlFor="checkout-phone">Phone</label>
-                    <input id="checkout-phone" type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+                    <input id="checkout-phone" type="tel" placeholder="+1 555 000 0000" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
                   </div>
                   <div className="form-field">
                     <label htmlFor="checkout-country">Country</label>
-                    <input id="checkout-country" type="text" value={form.country} onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))} />
+                    <input id="checkout-country" type="text" placeholder="United States" value={form.country} onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))} />
                   </div>
                 </div>
                 <div className="form-field">
-                  <label htmlFor="checkout-address">Address*</label>
-                  <input id="checkout-address" type="text" required value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+                  <label htmlFor="checkout-address">Street address <span className="form-required">*</span></label>
+                  <input id="checkout-address" type="text" required placeholder="123 Main St, Apt 4B" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
                 </div>
                 <div className="form-row">
                   <div className="form-field">
                     <label htmlFor="checkout-city">City</label>
-                    <input id="checkout-city" type="text" value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
+                    <input id="checkout-city" type="text" placeholder="New York" value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
                   </div>
                   <div className="form-field">
                     <label htmlFor="checkout-postalCode">Postal code</label>
-                    <input id="checkout-postalCode" type="text" value={form.postalCode} onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))} />
+                    <input id="checkout-postalCode" type="text" placeholder="10001" value={form.postalCode} onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))} />
                   </div>
                 </div>
+
+                {/* Promo code */}
+                <div className="checkout-promo">
+                  <label className="checkout-promo-label">
+                    <Tag size={14} strokeWidth={2} aria-hidden="true" />
+                    Promo code
+                  </label>
+                  <div className="checkout-promo-row">
+                    <input
+                      type="text"
+                      className="checkout-promo-input"
+                      placeholder="Enter code"
+                      value={promoCode}
+                      onChange={(e) => { setPromoCode(e.target.value); setPromoApplied(false) }}
+                    />
+                    <button
+                      type="button"
+                      className="checkout-promo-btn"
+                      onClick={handlePromoApply}
+                      disabled={!promoCode.trim() || promoApplied}
+                    >
+                      {promoApplied ? 'Applied' : 'Apply'}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="form-footer">
-                  <p className="muted small">By placing your order, you confirm that your cart items and contact details are correct.</p>
-                  <button type="submit" className="btn-primary" disabled={loading}>
-                    {loading ? 'Redirecting to payment...' : 'Proceed to payment'}
+                  <p className="muted small">By placing your order you confirm your cart items and contact details are correct.</p>
+                  <button type="submit" className="btn-primary checkout-submit-btn" disabled={loading}>
+                    {loading ? 'Redirecting to payment…' : 'Proceed to payment →'}
                   </button>
                 </div>
                 {message && (
-                  <div className={`checkout-message ${messageError ? 'error' : ''}`}>{message}</div>
+                  <div className={`checkout-message ${messageError ? 'error' : 'success'}`}>{message}</div>
                 )}
               </form>
             </div>
+
+            {/* RIGHT — Order summary */}
+            <div className="checkout-cart-column">
+              <div className="checkout-col-header">
+                <h2>Order summary</h2>
+                <p className="checkout-col-sub">{cart.length} {cart.length === 1 ? 'item' : 'items'} in your cart</p>
+              </div>
+
+              <div className="cart-items">
+                {!cart.length ? (
+                  <p className="small muted" style={{ padding: '0.75rem', textAlign: 'center' }}>Your cart is empty.</p>
+                ) : (
+                  cart.map((item) => {
+                    const line = item.cartLineId || cartLineId(item.productId, item.size)
+                    return (
+                      <div key={line} className="cart-item">
+                        <div className="cart-item-thumb">
+                          <img src={item.image} alt={item.name} />
+                        </div>
+                        <div className="cart-item-main">
+                          <div className="cart-item-title">{item.name}</div>
+                          <div className="cart-item-meta">Size: {item.size || 'M'} · Color: {item.color || '—'}</div>
+                          <div className="cart-item-price">
+                            {formatCurrency(item.price)} × {item.quantity}
+                          </div>
+                        </div>
+                        <div className="cart-item-controls checkout-order-summary-line-total">
+                          <div className="cart-item-line-total">{formatCurrency(item.price * item.quantity)}</div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {cart.length > 0 && (
+                <div className="cart-summary">
+                  <div className="summary-row">
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(cartTotal)}</span>
+                  </div>
+                  {promoApplied && promoCode && (
+                    <div className="summary-row summary-row--promo">
+                      <span>Promo: {promoCode}</span>
+                      <span className="summary-promo-note">Applied at checkout</span>
+                    </div>
+                  )}
+                  <div className="summary-row">
+                    <span>Shipping</span>
+                    <span className="summary-shipping-note">Calculated at payment</span>
+                  </div>
+                  <div className="summary-row summary-row--total">
+                    <span>Estimated total</span>
+                    <span>{formatCurrency(cartTotal)}</span>
+                  </div>
+                  <p className="muted small summary-tax-note">Taxes and shipping calculated at next step.</p>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </div>

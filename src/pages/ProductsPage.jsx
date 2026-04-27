@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useLocation, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useFavourites } from '../context/FavouritesContext'
 import { getAllProducts } from '../data/products'
 import { getCollectionDisplayName, matchesCollectionKey } from '../data/productCollections'
 import ProductCard from '../components/ProductCard'
-import ProductDetailsModal from '../components/ProductDetailsModal'
 
 function matchProduct(product, q) {
   if (!q || !q.trim()) return true
@@ -114,7 +113,7 @@ function groupProductsBySection(productList) {
   return rows
 }
 
-function renderProductGrid(products, findInCart, setSelectedProduct, addToCart, isFavourite, toggleFavourite) {
+function renderProductGrid(products, findInCart, onQuickReview, addToCart, isFavourite, toggleFavourite) {
   return (
     <div className="product-grid">
       {products.map((product) => (
@@ -122,7 +121,7 @@ function renderProductGrid(products, findInCart, setSelectedProduct, addToCart, 
           key={product.id}
           product={product}
           inCartQty={findInCart(product.id)}
-          onViewDetails={setSelectedProduct}
+          onViewDetails={onQuickReview}
           onAddToCart={(p) => addToCart(p, 1)}
           isFavourite={isFavourite(product.id)}
           onToggleFavourite={() => toggleFavourite(product)}
@@ -132,29 +131,17 @@ function renderProductGrid(products, findInCart, setSelectedProduct, addToCart, 
   )
 }
 
-/** Copy for `/products/:gender/:collection` when `collection` is not `all` — type chips live on all-catalog routes. */
-function CollectionHeroLede({ routeGender, routeCollection }) {
-  const genderWord = routeGender === 'mens' ? "men's" : "women's"
-  const line = getCollectionDisplayName(routeCollection)
-  return (
-    <p className="products-collection-lede">
-      You are viewing <strong>{line}</strong> in our {genderWord} range. Everything below belongs to this line—open any item for sizes, materials, and details.
-      For <strong>All</strong>, <strong>Hoodies</strong>, <strong>Shorts</strong>, and <strong>T-Shirts</strong> on men&apos;s or women&apos;s full catalogs, open{' '}
-      <strong>Products</strong> → <strong>{routeGender === 'mens' ? 'All Mens Products' : 'All Womens Products'}</strong>; women&apos;s full catalog also has <strong>Crop T-Shirts</strong> as its own filter.
-    </p>
-  )
-}
 
 export default function ProductsPage() {
   const { gender: routeGenderRaw, collection: routeCollectionRaw } = useParams()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedProduct, setSelectedProduct] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const { cart, addToCart } = useCart()
   const { isFavourite, toggleFavourite } = useFavourites()
   const location = useLocation()
+  const navigate = useNavigate()
   const routeGender = routeGenderRaw === 'mens' || routeGenderRaw === 'womens' ? routeGenderRaw : null
   const routeCollection = routeCollectionRaw || 'all'
   const isGenderScopedPage = Boolean(routeGender)
@@ -177,6 +164,10 @@ export default function ProductsPage() {
 
   const findInCart = (id) =>
     cart.filter((i) => i.productId === id).reduce((sum, i) => sum + (i.quantity || 0), 0)
+  const goToQuickReview = (product) => {
+    if (!product?.id) return
+    navigate(`/quick-review/${encodeURIComponent(product.id)}`)
+  }
   const searchTrimmed = searchQuery.trim()
   const scopedProducts = useMemo(
     () =>
@@ -233,9 +224,6 @@ export default function ProductsPage() {
   const renderSectionGroups = (gender, groups) => (
     <section className="products-category-section products-gender-block" id={gender}>
       <h2 className="products-category-title">{gender === 'mens' ? "Men's" : "Women's"}</h2>
-      <p className="products-gender-sub">
-        {gender === 'mens' ? "Men's collections" : "Women's collections"} — organized by line.
-      </p>
       {groups.map((g) => (
         <div key={g.sectionSlug} id={g.sectionSlug} className="products-store-section">
           <div className="products-store-section-head">
@@ -244,7 +232,7 @@ export default function ProductsPage() {
               <span className="products-section-count">{g.items.length} items</span>
             </div>
           </div>
-          {renderProductGrid(g.items, findInCart, setSelectedProduct, addToCart, isFavourite, toggleFavourite)}
+          {renderProductGrid(g.items, findInCart, goToQuickReview, addToCart, isFavourite, toggleFavourite)}
         </div>
       ))}
     </section>
@@ -270,9 +258,7 @@ export default function ProductsPage() {
               autoComplete="off"
             />
           </div>
-          {isGenderScopedPage && routeCollection !== 'all' ? (
-            <CollectionHeroLede routeGender={routeGender} routeCollection={routeCollection} />
-          ) : (
+          {!(isGenderScopedPage && routeCollection !== 'all') && (
             <div className="products-category-filters products-category-filters--boxed">
               {typeFilterButtons.map(({ id, label }) => (
                 <button
@@ -304,7 +290,7 @@ export default function ProductsPage() {
                     <SectionTitleBlock items={g.items} sectionTitleShort={g.sectionTitleShort} />
                     <span className="products-section-count">{g.items.length} items</span>
                   </div>
-                  {renderProductGrid(g.items, findInCart, setSelectedProduct, addToCart, isFavourite, toggleFavourite)}
+                  {renderProductGrid(g.items, findInCart, goToQuickReview, addToCart, isFavourite, toggleFavourite)}
                 </div>
               ))
             ) : (
@@ -325,7 +311,7 @@ export default function ProductsPage() {
                     <SectionTitleBlock items={g.items} sectionTitleShort={g.sectionTitleShort} />
                     <span className="products-section-count">{g.items.length} items</span>
                   </div>
-                  {renderProductGrid(g.items, findInCart, setSelectedProduct, addToCart, isFavourite, toggleFavourite)}
+                  {renderProductGrid(g.items, findInCart, goToQuickReview, addToCart, isFavourite, toggleFavourite)}
                 </div>
               ))
             ) : (
@@ -337,16 +323,13 @@ export default function ProductsPage() {
         <div className="container products-categories">
           <section className="products-category-section products-gender-block">
             <h2 className="products-category-title">{routeGender === 'mens' ? "Men's" : "Women's"} collections</h2>
-            <p className="products-gender-sub">
-              {routeGender === 'mens' ? "Men's" : "Women's"} catalog only.
-            </p>
             {scopedGroups.map((g) => (
               <div key={g.sectionSlug} id={g.sectionSlug} className="products-store-section">
                 <div className="products-store-section-head">
                   <SectionTitleBlock items={g.items} sectionTitleShort={g.sectionTitleShort} />
                   <span className="products-section-count">{g.items.length} items</span>
                 </div>
-                {renderProductGrid(g.items, findInCart, setSelectedProduct, addToCart, isFavourite, toggleFavourite)}
+                {renderProductGrid(g.items, findInCart, goToQuickReview, addToCart, isFavourite, toggleFavourite)}
               </div>
             ))}
           </section>
@@ -358,13 +341,6 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {selectedProduct && (
-        <ProductDetailsModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-          onAddToCart={(p, qty, size, color) => addToCart(p, qty ?? 1, size, color)}
-        />
-      )}
     </main>
   )
 }

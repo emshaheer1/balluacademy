@@ -11,7 +11,19 @@ export default function ProductCard({ product, inCartQty, onViewDetails, onAddTo
   const metaLabel = product?.categoryShort || product?.category || ''
   return (
     <article className="product-card">
-      <div className="product-image">
+      <div
+        className="product-image product-image-clickable"
+        role="button"
+        tabIndex={0}
+        aria-label={`Quick review ${product.name}`}
+        onClick={() => onViewDetails(product)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onViewDetails(product)
+          }
+        }}
+      >
         <img
           src={product.image}
           alt={`${product.name}${product.collectionLabel ? ` — ${product.collectionLabel}` : ''}`}
@@ -19,6 +31,13 @@ export default function ProductCard({ product, inCartQty, onViewDetails, onAddTo
           onLoad={() => setImgLoaded(true)}
           onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMG; e.target.onload = () => setImgLoaded(true) }}
         />
+        <button
+          type="button"
+          className="quick-review-btn quick-review-overlay-btn"
+          onClick={(e) => { e.stopPropagation(); onViewDetails(product) }}
+        >
+          Quick Review
+        </button>
         <button
           type="button"
           className={`favourite-btn favourite-btn-mobile-top ${isFavourite ? 'active' : ''}`}
@@ -37,11 +56,10 @@ export default function ProductCard({ product, inCartQty, onViewDetails, onAddTo
       <div className="product-actions">
         <span className="qty-badge">{inCartQty ? `In cart: ${inCartQty}` : '\u00A0'}</span>
         <div className="product-actions-buttons">
-          <button type="button" className="view-details-btn" onClick={() => onViewDetails(product)}>View details</button>
+          <button type="button" className="add-to-cart-btn" onClick={() => onAddToCart(product)}><span>+</span> Add</button>
           <button type="button" className={`favourite-btn favourite-btn-inline ${isFavourite ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); onToggleFavourite?.() }} aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}>
             <Heart size={18} strokeWidth={2} fill={isFavourite ? 'currentColor' : 'none'} />
           </button>
-          <button type="button" className="add-to-cart-btn" onClick={() => onAddToCart(product)}><span>+</span> Add</button>
         </div>
       </div>
     </article>

@@ -4,14 +4,10 @@ import { Sun, Moon, ShoppingCart, X, ChevronDown, ChevronRight, LogIn } from 'lu
 import { useTheme } from '../context/ThemeContext'
 import { useCart } from '../context/CartContext'
 import { OpenCartProvider } from '../context/OpenCartContext'
-import CheckoutModal from './CheckoutModal'
-import OrderConfirmationModal from './OrderConfirmationModal'
-import EmptyCartModal from './EmptyCartModal'
 import AddedToCartModal from './AddedToCartModal'
 import LoginModal from './LoginModal'
 import ProfileDropdown from './ProfileDropdown'
 import { useAuth } from '../context/AuthContext'
-import { useOrders } from '../context/OrdersContext'
 import { api } from '../api/client'
 import { MEN_COLLECTION_MENU, WOMEN_COLLECTION_MENU } from '../data/productCollections'
 
@@ -64,7 +60,7 @@ function HashLink({ to, className, children, onClick }) {
   return <Link to={to} className={className} onClick={onClick}>{children}</Link>
 }
 
-function Header({ onOpenCart, onOpenLogin, profileOpen, onOpenProfile, onCloseProfile }) {
+function Header({ onGoCart, onOpenLogin, profileOpen, onOpenProfile, onCloseProfile }) {
   const { toggle } = useTheme()
   const { cartCount } = useCart()
   const { user } = useAuth()
@@ -195,17 +191,10 @@ function Header({ onOpenCart, onOpenLogin, profileOpen, onOpenProfile, onClosePr
               <span className="theme-icon-sun" aria-hidden="true"><Sun size={20} strokeWidth={2} /></span>
               <span className="theme-icon-moon" aria-hidden="true"><Moon size={20} strokeWidth={2} /></span>
             </button>
-            {isContact ? (
-              <Link to="/" className="cart-toggle" aria-label="Back to store">
-                <ShoppingCart size={20} strokeWidth={2} className="cart-icon" />
-                <span>Store</span>
-              </Link>
-            ) : (
-              <button type="button" className="cart-toggle" aria-label="Open cart and checkout" onClick={onOpenCart}>
-                <ShoppingCart size={20} strokeWidth={2} className="cart-icon" />
-                <span className="cart-count">{cartCount}</span>
-              </button>
-            )}
+            <button type="button" className="cart-toggle" aria-label="Open cart page" onClick={onGoCart}>
+              <ShoppingCart size={20} strokeWidth={2} className="cart-icon" />
+              <span className="cart-count">{cartCount}</span>
+            </button>
             {user ? (
               <div className="header-profile-wrap">
                 <button type="button" ref={profileButtonRef} className="profile-trigger profile-trigger-avatar-only" onClick={() => (profileOpen ? onCloseProfile() : onOpenProfile())} aria-expanded={profileOpen} aria-haspopup="true" aria-label="Profile">
@@ -296,15 +285,11 @@ function Footer({ footerRef }) {
 }
 
 export default function Layout({ children }) {
-  const [showCheckout, setShowCheckout] = useState(false)
-  const [orderId, setOrderId] = useState(null)
-  const [showEmptyCart, setShowEmptyCart] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [backToTopVisible, setBackToTopVisible] = useState(false)
   const footerRef = useRef(null)
-  const { cart } = useCart()
-  const { addOrder } = useOrders()
+  const navigate = useNavigate()
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -329,30 +314,14 @@ export default function Layout({ children }) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleOpenCart = () => {
-    if (cart.length === 0) {
-      setShowEmptyCart(true)
-    } else {
-      setShowCheckout(true)
-    }
-  }
-
-  const handleOrderSuccess = (orderData) => {
-    if (orderData && typeof orderData === 'object' && orderData.orderId) {
-      addOrder(orderData)
-      setOrderId(orderData.orderId)
-    } else {
-      setOrderId(orderData)
-    }
-    setShowCheckout(false)
-  }
+  const handleGoCart = () => navigate('/cart')
 
   return (
-    <OpenCartProvider openCart={handleOpenCart}>
+    <OpenCartProvider openCart={handleGoCart}>
       <ScrollToHash />
       <ScrollToTopOnLoad />
       <Header
-        onOpenCart={handleOpenCart}
+        onGoCart={handleGoCart}
         onOpenLogin={() => setShowLogin(true)}
         profileOpen={profileOpen}
         onOpenProfile={() => setProfileOpen(true)}
@@ -362,21 +331,6 @@ export default function Layout({ children }) {
       <Footer footerRef={footerRef} />
       <BackToTop visible={backToTopVisible} onClick={scrollToTop} />
 
-      {showCheckout && (
-        <CheckoutModal
-          onClose={() => setShowCheckout(false)}
-          onSuccess={handleOrderSuccess}
-        />
-      )}
-      {orderId != null && (
-        <OrderConfirmationModal
-          orderId={orderId}
-          onClose={() => setOrderId(null)}
-        />
-      )}
-      {showEmptyCart && (
-        <EmptyCartModal onClose={() => setShowEmptyCart(false)} />
-      )}
       <AddedToCartModal />
       {showLogin && (
         <LoginModal onClose={() => setShowLogin(false)} />
